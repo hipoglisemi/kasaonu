@@ -1,0 +1,162 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [pg_trgm, uuid_ossp(map: "uuid-ossp"), vector]
+}
+
+// ============================================
+// CORE ENTITIES
+// ============================================
+
+model Bank {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  logoUrl   String?  @map("logo_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cards Card[]
+
+  @@map("banks")
+}
+
+model Card {
+  id             Int      @id @default(autoincrement())
+  bankId         Int      @map("bank_id")
+  name           String
+  slug           String   @unique
+  cardType       String?  @map("card_type")
+  annualFee      Decimal? @map("annual_fee") @db.Decimal(10, 2)
+  applicationUrl String?  @map("application_url")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  bank      Bank       @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  campaigns Campaign[]
+
+  @@index([bankId])
+  @@map("cards")
+}
+
+model Sector {
+  id        Int    @id @default(autoincrement())
+  name      String
+  slug      String @unique
+  iconName  String? @map("icon_name")
+  sortOrder Int    @default(0) @map("sort_order")
+
+  brands    Brand[]
+  campaigns Campaign[]
+
+  @@map("sectors")
+}
+
+model Brand {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name      String
+  sectorId  Int      @map("sector_id")
+  aliases   String[]
+  logoUrl   String?  @map("logo_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sector    Sector          @relation(fields: [sectorId], references: [id])
+  campaigns CampaignBrand[]
+
+  @@index([sectorId])
+  @@map("brands")
+}
+
+model Campaign {
+  id             String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  cardId         Int                        @map("card_id")
+  sectorId       Int?                       @map("sector_id")
+  title          String
+  rewardText     String                     @map("reward_text")
+  rewardValue    Decimal?                   @map("reward_value") @db.Decimal(10, 2)
+  rewardType     String?                    @map("reward_type")
+  detailsText    String?                    @map("details_text") @db.Text
+  conditionsText String?                    @map("conditions_text") @db.Text
+  startDate      DateTime?                  @map("start_date") @db.Date
+  endDate        DateTime?                  @map("end_date") @db.Date
+  isActive       Boolean                    @default(true) @map("is_active")
+  trackingUrl    String?                    @map("tracking_url")
+  affiliateNetwork String?                  @map("affiliate_network")
+  viewCount      Int                        @default(0) @map("view_count")
+  clickCount     Int                        @default(0) @map("click_count")
+  embedding      Unsupported("vector(1536)")?
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  updatedAt      DateTime                   @updatedAt @map("updated_at")
+
+  card       Card            @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  sector     Sector?         @relation(fields: [sectorId], references: [id])
+  brands     CampaignBrand[]
+  searchLogs SearchLog[]
+
+  @@index([cardId])
+  @@index([sectorId])
+  @@index([startDate, endDate])
+  @@map("campaigns")
+}
+
+model CampaignBrand {
+  campaignId String @map("campaign_id") @db.Uuid
+  brandId    String @map("brand_id") @db.Uuid
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  brand    Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, brandId])
+  @@index([brandId])
+  @@map("campaign_brands")
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model UserSession {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fingerprint     String   @unique
+  savedCards      Int[]    @map("saved_cards")
+  lastSearchQuery String?  @map("last_search_query")
+  lastSeenAt      DateTime @default(now()) @map("last_seen_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  searchLogs SearchLog[]
+
+  @@map("user_sessions")
+}
+
+model SearchLog {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sessionId          String?   @map("session_id") @db.Uuid
+  query              String
+  resultCount        Int?      @map("result_count")
+  clickedCampaignId  String?   @map("clicked_campaign_id") @db.Uuid
+  searchedAt         DateTime  @default(now()) @map("searched_at")
+
+  session          UserSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  clickedCampaign  Campaign?    @relation(fields: [clickedCampaignId], references: [id], onDelete: SetNull)
+
+  @@index([query])
+  @@index([searchedAt])
+  @@map("search_logs")
+}
+
+model MissingSearch {
+  id                Int      @id @default(autoincrement())
+  query             String   @unique
+  searchCount       Int      @default(1) @map("search_count")
+  lastSearchedAt    DateTime @default(now()) @map("last_searched_at")
+  suggestedSectorId Int?     @map("suggested_sector_id")
+  isResolved        Boolean  @default(false) @map("is_resolved")
+
+  @@index([query])
+  @@map("missing_searches")
+}
