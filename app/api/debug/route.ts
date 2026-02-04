@@ -1,9 +1,26 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+
+type CampaignWithRelations = Prisma.CampaignGetPayload<{
+    include: {
+        card: {
+            include: {
+                bank: true
+            }
+        }
+        sector: true
+        brands: {
+            include: {
+                brand: true
+            }
+        }
+    }
+}>
 
 export async function GET() {
     try {
-        const campaigns = await prisma.campaign.findMany({
+        const campaigns: CampaignWithRelations[] = await prisma.campaign.findMany({
             include: {
                 card: {
                     include: {
