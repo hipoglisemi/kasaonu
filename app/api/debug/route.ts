@@ -21,15 +21,15 @@ export async function GET() {
 
         const stats = {
             totalCampaigns: campaigns.length,
-            activeCampaigns: campaigns.filter(c => c.isActive).length,
-            campaigns: campaigns.map(c => ({
+            activeCampaigns: campaigns.filter((c) => c.isActive).length,
+            campaigns: campaigns.map((c) => ({
                 id: c.id,
                 title: c.title,
                 isActive: c.isActive,
                 card: c.card.name,
                 bank: c.card.bank.name,
                 sector: c.sector?.name,
-                brands: c.brands.map(b => b.brand.name),
+                brands: c.brands.map((b) => b.brand.name),
             })),
         }
 
