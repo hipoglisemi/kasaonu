@@ -1,16 +1,12 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
+  previewFeatures = ["fullTextSearchPostgres", "postgresqlExtensions"]
 }
 
 datasource db {
   provider   = "postgresql"
   extensions = [pg_trgm, uuid_ossp(map: "uuid-ossp"), vector]
 }
-
-// ============================================
-// CORE ENTITIES
-// ============================================
 
 model Bank {
   id        Int      @id @default(autoincrement())
@@ -19,37 +15,36 @@ model Bank {
   logoUrl   String?  @map("logo_url")
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
-
-  cards Card[]
+  cards     Card[]
 
   @@map("banks")
 }
 
 model Card {
-  id             Int      @id @default(autoincrement())
-  bankId         Int      @map("bank_id")
+  id             Int        @id @default(autoincrement())
+  bankId         Int        @map("bank_id")
   name           String
-  slug           String   @unique
-  cardType       String?  @map("card_type")
-  annualFee      Decimal? @map("annual_fee") @db.Decimal(10, 2)
-  applicationUrl String?  @map("application_url")
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  bank      Bank       @relation(fields: [bankId], references: [id], onDelete: Cascade)
-  campaigns Campaign[]
+  slug           String     @unique
+  cardType       String?    @map("card_type")
+  annualFee      Decimal?   @map("annual_fee") @db.Decimal(10, 2)
+  applicationUrl String?    @map("application_url")
+  isActive       Boolean    @default(true) @map("is_active")
+  logoUrl        String?    @map("logo_url")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  campaigns      Campaign[]
+  bank           Bank       @relation(fields: [bankId], references: [id], onDelete: Cascade)
 
   @@index([bankId])
+  @@index([bankId], map: "idx_cards_bank_id")
   @@map("cards")
 }
 
 model Sector {
-  id        Int    @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   name      String
-  slug      String @unique
-  iconName  String? @map("icon_name")
-  sortOrder Int    @default(0) @map("sort_order")
-
+  slug      String     @unique
+  iconName  String?    @map("icon_name")
+  sortOrder Int        @default(0) @map("sort_order")
   brands    Brand[]
   campaigns Campaign[]
 
@@ -57,92 +52,88 @@ model Sector {
 }
 
 model Brand {
-  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id        String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name      String
-  sectorId  Int      @map("sector_id")
+  sectorId  Int             @map("sector_id")
   aliases   String[]
-  logoUrl   String?  @map("logo_url")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-
+  logoUrl   String?         @map("logo_url")
+  isActive  Boolean         @default(true) @map("is_active")
+  createdAt DateTime        @default(now()) @map("created_at")
   sector    Sector          @relation(fields: [sectorId], references: [id])
   campaigns CampaignBrand[]
 
   @@index([sectorId])
+  @@index([sectorId], map: "idx_brands_sector_id")
   @@map("brands")
 }
 
 model Campaign {
-  id             String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  cardId         Int                        @map("card_id")
-  sectorId       Int?                       @map("sector_id")
-  title          String
-  rewardText     String                     @map("reward_text")
-  rewardValue    Decimal?                   @map("reward_value") @db.Decimal(10, 2)
-  rewardType     String?                    @map("reward_type")
-  detailsText    String?                    @map("details_text") @db.Text
-  conditionsText String?                    @map("conditions_text") @db.Text
-  startDate      DateTime?                  @map("start_date") @db.Date
-  endDate        DateTime?                  @map("end_date") @db.Date
-  isActive       Boolean                    @default(true) @map("is_active")
-  trackingUrl    String?                    @map("tracking_url")
-  affiliateNetwork String?                  @map("affiliate_network")
-  viewCount      Int                        @default(0) @map("view_count")
-  clickCount     Int                        @default(0) @map("click_count")
-  embedding      Unsupported("vector(1536)")?
-  createdAt      DateTime                   @default(now()) @map("created_at")
-  updatedAt      DateTime                   @updatedAt @map("updated_at")
-
-  card       Card            @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  sector     Sector?         @relation(fields: [sectorId], references: [id])
-  brands     CampaignBrand[]
-  searchLogs SearchLog[]
+  id               String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  cardId           Int                    @map("card_id")
+  sectorId         Int?                   @map("sector_id")
+  title            String
+  rewardText       String                 @map("reward_text")
+  rewardValue      Decimal?               @map("reward_value") @db.Decimal(10, 2)
+  rewardType       String?                @map("reward_type")
+  detailsText      String?                @map("details_text")
+  conditionsText   String?                @map("conditions_text")
+  imageUrl         String?                @map("image_url")
+  startDate        DateTime?              @map("start_date") @db.Date
+  endDate          DateTime?              @map("end_date") @db.Date
+  isActive         Boolean                @default(true) @map("is_active")
+  trackingUrl      String?                @map("tracking_url")
+  affiliateNetwork String?                @map("affiliate_network")
+  viewCount        Int                    @default(0) @map("view_count")
+  clickCount       Int                    @default(0) @map("click_count")
+  embedding        Unsupported("vector")?
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+  brands           CampaignBrand[]
+  card             Card                   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  sector           Sector?                @relation(fields: [sectorId], references: [id])
+  searchLogs       SearchLog[]
 
   @@index([cardId])
   @@index([sectorId])
   @@index([startDate, endDate])
+  @@index([cardId], map: "idx_campaigns_card_id")
+  @@index([sectorId], map: "idx_campaigns_sector_id")
   @@map("campaigns")
 }
 
 model CampaignBrand {
-  campaignId String @map("campaign_id") @db.Uuid
-  brandId    String @map("brand_id") @db.Uuid
-
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  brand    Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignId String   @map("campaign_id") @db.Uuid
+  brandId    String   @map("brand_id") @db.Uuid
+  brand      Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@id([campaignId, brandId])
   @@index([brandId])
+  @@index([brandId], map: "idx_campaign_brands_brand_id")
   @@map("campaign_brands")
 }
 
-// ============================================
-// ANALYTICS
-// ============================================
-
 model UserSession {
-  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  fingerprint     String   @unique
-  savedCards      Int[]    @map("saved_cards")
-  lastSearchQuery String?  @map("last_search_query")
-  lastSeenAt      DateTime @default(now()) @map("last_seen_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  searchLogs SearchLog[]
+  id              String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fingerprint     String      @unique
+  savedCards      Int[]       @map("saved_cards")
+  lastSearchQuery String?     @map("last_search_query")
+  lastSeenAt      DateTime    @default(now()) @map("last_seen_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  searchLogs      SearchLog[]
 
   @@map("user_sessions")
 }
 
 model SearchLog {
-  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  sessionId          String?   @map("session_id") @db.Uuid
-  query              String
-  resultCount        Int?      @map("result_count")
-  clickedCampaignId  String?   @map("clicked_campaign_id") @db.Uuid
-  searchedAt         DateTime  @default(now()) @map("searched_at")
-
-  session          UserSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  clickedCampaign  Campaign?    @relation(fields: [clickedCampaignId], references: [id], onDelete: SetNull)
+  id                String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  sessionId         String?      @map("session_id") @db.Uuid
+  query             String
+  resultCount       Int?         @map("result_count")
+  clickedCampaignId String?      @map("clicked_campaign_id") @db.Uuid
+  searchedAt        DateTime     @default(now()) @map("searched_at")
+  clickedCampaign   Campaign?    @relation(fields: [clickedCampaignId], references: [id])
+  session           UserSession? @relation(fields: [sessionId], references: [id])
 
   @@index([query])
   @@index([searchedAt])

@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCached, setCache } from '@/lib/redis'
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
     try {
-        const { query } = await req.json()
+        const { searchParams } = new URL(req.url)
+        const query = searchParams.get('query') || ''
 
         if (!query || query.trim().length < 2) {
-            return NextResponse.json({ campaigns: [] })
+            return NextResponse.json({ success: true, data: [] })
         }
 
         const searchTerm = query.toLowerCase().trim()
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
         const cached = await getCached<any[]>(cacheKey)
         if (cached) {
             console.log(`✅ Cache HIT for: ${searchTerm}`)
-            return NextResponse.json({ campaigns: cached, fromCache: true })
+            return NextResponse.json({ success: true, data: cached, fromCache: true })
         }
 
         console.log(`❌ Cache MISS for: ${searchTerm}`)
@@ -103,11 +104,11 @@ export async function POST(req: NextRequest) {
             })
         }
 
-        return NextResponse.json({ campaigns, fromCache: false })
+        return NextResponse.json({ success: true, data: campaigns, fromCache: false })
     } catch (error) {
         console.error('Search error:', error)
         return NextResponse.json(
-            { error: 'Arama sırasında hata oluştu' },
+            { success: false, error: 'Arama sırasında hata oluştu' },
             { status: 500 }
         )
     }

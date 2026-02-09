@@ -1,8 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, ShoppingCart, ShoppingBag, Fuel, Sparkles, CreditCard } from 'lucide-react'
+import { Search, ShoppingCart, ShoppingBag, Fuel, CreditCard, Shirt, Utensils, Laptop, Package, ArrowLeft, RefreshCw } from 'lucide-react'
 import CardSelector from '@/components/CardSelector'
+import { ModernHeroSection } from '@/components/ModernHeroSection'
+import { Header } from '@/components/Header'
+import { Footer } from '@/components/Footer'
+import { CampaignCard } from '@/components/CampaignCard'
+import { LoadingSkeleton } from '@/components/LoadingSkeleton'
+import { cn } from '@/lib/utils'
 
 interface Campaign {
   id: string
@@ -10,9 +16,12 @@ interface Campaign {
   rewardText: string
   rewardValue: number
   rewardType: string
+  validUntil?: string
+  imageUrl?: string | null
   card: {
     id: number
     name: string
+    logoUrl?: string | null
     bank: {
       name: string
     }
@@ -29,11 +38,16 @@ const STORAGE_KEY = 'kasaonu_selected_cards'
 export default function HomePage() {
   const [query, setQuery] = useState('')
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [featuredCampaigns, setFeaturedCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingFeatured, setLoadingFeatured] = useState(true)
+  const [featuredSort, setFeaturedSort] = useState<'newest' | 'popular'>('newest')
   const [selectedCardIds, setSelectedCardIds] = useState<number[]>([])
   const [isCardSelectorOpen, setIsCardSelectorOpen] = useState(false)
+  const [activeCategory, setActiveCategory] = useState<string | null>(null)
+  const [isFocused, setIsFocused] = useState(false)
 
-  // Load selected cards from localStorage on mount
+  // Load selected cards and initial campaigns on mount
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
@@ -44,6 +58,26 @@ export default function HomePage() {
       }
     }
   }, [])
+
+  // Refetch featured campaigns when sort changes
+  useEffect(() => {
+    fetchFeaturedCampaigns()
+  }, [featuredSort])
+
+  const fetchFeaturedCampaigns = async () => {
+    setLoadingFeatured(true)
+    try {
+      const response = await fetch(`/api/campaigns?limit=20&sortBy=${featuredSort}`)
+      const apiResponse = await response.json()
+      if (apiResponse.success) {
+        setFeaturedCampaigns(apiResponse.data || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch featured campaigns:', error)
+    } finally {
+      setLoadingFeatured(false)
+    }
+  }
 
   const handleSelectionChange = (cardIds: number[]) => {
     setSelectedCardIds(cardIds)
@@ -58,24 +92,32 @@ export default function HomePage() {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/search', {
-        method: 'POST',
+      // Use GET with query params as per new architecture
+      const params = new URLSearchParams()
+      params.append('query', searchQuery)
+
+      const response = await fetch(`/api/search?${params.toString()}`, {
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: searchQuery }),
       })
-      const data = await response.json()
+      const apiResponse = await response.json()
 
-      // Sort campaigns: user's cards first
-      const sorted = (data.campaigns || []).sort((a: Campaign, b: Campaign) => {
-        const aIsUserCard = selectedCardIds.includes(a.card.id)
-        const bIsUserCard = selectedCardIds.includes(b.card.id)
+      if (apiResponse.success) {
+        // Sort campaigns: user's cards first
+        const sorted = (apiResponse.data || []).sort((a: Campaign, b: Campaign) => {
+          const aIsUserCard = selectedCardIds.includes(a.card.id)
+          const bIsUserCard = selectedCardIds.includes(b.card.id)
 
-        if (aIsUserCard && !bIsUserCard) return -1
-        if (!aIsUserCard && bIsUserCard) return 1
-        return 0
-      })
+          if (aIsUserCard && !bIsUserCard) return -1
+          if (!aIsUserCard && bIsUserCard) return 1
+          return 0
+        })
 
-      setCampaigns(sorted)
+        setCampaigns(sorted)
+      } else {
+        console.error('Search API error:', apiResponse.error)
+        setCampaigns([])
+      }
     } catch (error) {
       console.error('Search error:', error)
     } finally {
@@ -84,189 +126,231 @@ export default function HomePage() {
   }
 
   const quickActions = [
-    { name: 'Market', icon: ShoppingCart, query: 'market' },
-    { name: 'Giyim', icon: ShoppingBag, query: 'giyim' },
+    { name: 'Market & Gıda', icon: ShoppingCart, query: 'market-gida' },
     { name: 'Akaryakıt', icon: Fuel, query: 'akaryakit' },
+    { name: 'Giyim & Aksesuar', icon: Shirt, query: 'giyim-aksesuar' },
+    { name: 'Restoran & Kafe', icon: Utensils, query: 'restoran-kafe' },
+    { name: 'Elektronik', icon: Laptop, query: 'elektronik' },
+    { name: 'E-Ticaret', icon: Package, query: 'e-ticaret' },
   ]
 
+  const handleCategoryClick = (categoryQuery: string) => {
+    setActiveCategory(categoryQuery)
+    setQuery(categoryQuery)
+    handleSearch(categoryQuery)
+  }
+
+  const isSearching = query.trim().length >= 2 || activeCategory !== null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-indigo-600" />
-              <h1 className="text-xl font-bold text-gray-900">KasaOnu</h1>
-            </div>
+    <div className="min-h-screen bg-white">
+      {/* Header with Search */}
+      <Header
+        searchQuery={query}
+        onSearchChange={(value) => {
+          setQuery(value)
+          handleSearch(value)
+          setActiveCategory(null)
+        }}
+        onSearchSubmit={() => handleSearch(query)}
+        isFocused={isFocused}
+        onFocusChange={setIsFocused}
+      />
 
-            {/* My Cards Button */}
-            <button
-              onClick={() => setIsCardSelectorOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:from-indigo-700 hover:to-blue-700 hover:shadow-lg"
-            >
-              <CreditCard className="h-4 w-4" />
-              Kartlarım
-              {selectedCardIds.length > 0 && (
-                <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs">
-                  {selectedCardIds.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Body Content */}
+      <div className="pt-16">
+        {!isSearching ? (
+          <>
+            {/* Modern Hero Section */}
+            <ModernHeroSection onSectorClick={handleCategoryClick} />
 
-      {/* Hero Section */}
-      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <h2 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-            En İyi Kredi Kartı
-            <span className="block text-indigo-600">Kampanyalarını Keşfet</span>
-          </h2>
-          <p className="mt-4 text-lg text-gray-600">
-            Binlerce kampanya arasından size en uygun olanı bulun
-          </p>
-        </div>
+            {/* Featured Campaigns Section */}
+            <section className="px-6 lg:px-20 py-20 bg-white animate-fade-in">
+              <div className="max-w-[1400px] mx-auto">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">
+                      Öne Çıkan <span className="text-rose-600">Kampanyalar</span>
+                    </h2>
+                    <p className="text-slate-500 text-[14px] font-medium opacity-80">Sizin için seçtiğimiz güncel fırsatları keşfedin.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 border border-slate-200/60 rounded-xl bg-slate-50/50 flex gap-1 shadow-sm">
+                      <button
+                        onClick={() => setFeaturedSort('newest')}
+                        className={cn(
+                          "px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-300",
+                          featuredSort === 'newest'
+                            ? "bg-white text-rose-600 shadow-sm border border-slate-200/60"
+                            : "text-slate-400 hover:text-slate-600"
+                        )}
+                      >
+                        En Yeniler
+                      </button>
+                      <button
+                        onClick={() => setFeaturedSort('popular')}
+                        className={cn(
+                          "px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-300",
+                          featuredSort === 'popular'
+                            ? "bg-white text-rose-600 shadow-sm border border-slate-200/60"
+                            : "text-slate-400 hover:text-slate-600"
+                        )}
+                      >
+                        Popüler
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-        {/* Search Bar */}
-        <div className="mt-10">
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-                handleSearch(e.target.value)
-              }}
-              placeholder="Migros, Zara, Shell..."
-              className="block w-full rounded-2xl border-0 bg-white py-4 pl-12 pr-4 text-gray-900 shadow-lg ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-lg sm:leading-6"
-            />
-          </div>
-
-          {/* Quick Actions */}
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            {quickActions.map((action) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+                  {loadingFeatured ? (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <LoadingSkeleton key={i} />
+                    ))
+                  ) : featuredCampaigns.length > 0 ? (
+                    featuredCampaigns.map((campaign) => (
+                      <CampaignCard
+                        key={campaign.id}
+                        campaign={campaign}
+                        isUserCard={selectedCardIds.includes(campaign.card.id)}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-full py-12 text-center text-slate-400 font-medium">
+                      Henüz öne çıkan kampanya bulunmuyor.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          </>
+        ) : (
+          /* Search Results Section (KACF Style) */
+          <section className="px-6 lg:px-20 py-16 animate-fade-in bg-white min-h-[80vh]">
+            <div className="max-w-[1120px] mx-auto mb-16">
               <button
-                key={action.name}
                 onClick={() => {
-                  setQuery(action.query)
-                  handleSearch(action.query)
+                  setQuery('')
+                  setActiveCategory(null)
+                  setCampaigns([])
                 }}
-                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-md ring-1 ring-inset ring-gray-200 transition-all hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-300"
+                className="group flex items-center gap-3 text-slate-500 hover:text-rose-600 transition-all mb-10 font-bold text-xs uppercase tracking-widest"
               >
-                <action.icon className="h-4 w-4" />
-                {action.name}
+                <div className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center group-hover:border-rose-200 group-hover:bg-rose-50 transition-all shadow-sm">
+                  <ArrowLeft size={16} />
+                </div>
+                Ana Sayfa
               </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="mt-8 text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
-            <p className="mt-2 text-sm text-gray-600">Kampanyalar aranıyor...</p>
-          </div>
-        )}
-
-        {/* Results */}
-        {!loading && campaigns.length > 0 && (
-          <div className="mt-10 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {campaigns.length} kampanya bulundu
-            </h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {campaigns.map((campaign) => {
-                const isUserCard = selectedCardIds.includes(campaign.card.id)
-
-                return (
-                  <div
-                    key={campaign.id}
-                    className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-md ring-1 ring-gray-200 transition-all hover:shadow-xl hover:ring-indigo-300"
-                  >
-                    {/* User Card Badge */}
-                    {isUserCard && (
-                      <div className="absolute right-4 top-4 rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white shadow-md">
-                        ✓ Kartınız
-                      </div>
-                    )}
-
-                    {/* Card & Bank Info */}
-                    <div className="mb-3 flex items-center gap-2">
-                      <div className="rounded-lg bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
-                        {campaign.card.name}
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {campaign.card.bank.name}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-slate-100 pb-8">
+                <div>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">
+                    {activeCategory ? quickActions.find(a => a.query === activeCategory)?.name : 'Arama Sonuçları'}
+                  </h2>
+                  <p className="text-slate-500 font-medium text-[14px] opacity-80">
+                    {loading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <RefreshCw size={14} className="animate-spin text-rose-500" /> Kampanyalar taranıyor...
                       </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                        `"${query || (activeCategory && quickActions.find(a => a.query === activeCategory)?.name)}" araması için ${campaigns.length} sonuç listeleniyor.`
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {/* Active Filter Badges */}
+                <div className="flex flex-wrap gap-2">
+                  {(query || activeCategory) && (
+                    <div className="inline-flex items-center gap-2 bg-rose-50 text-rose-600 border border-rose-100 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm">
+                      {activeCategory ? quickActions.find(a => a.query === activeCategory)?.name : query}
+                      <button
+                        onClick={() => {
+                          setQuery('')
+                          setActiveCategory(null)
+                          setCampaigns([])
+                        }}
+                        className="hover:scale-125 transition-transform ml-1"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+
+                  {(query || activeCategory) && (
+                    <button
+                      onClick={() => {
+                        setQuery('')
+                        setActiveCategory(null)
+                        setCampaigns([])
+                      }}
+                      className="inline-flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-rose-600 uppercase tracking-widest px-4 py-2 border rounded-xl border-slate-200 hover:border-rose-200 transition-all shadow-sm bg-white"
+                    >
+                      <RefreshCw size={10} /> Temizle
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Results Grid */}
+            <div className="max-w-[1120px] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+              {loading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <LoadingSkeleton key={i} />
+                ))
+              ) : campaigns.length > 0 ? (
+                campaigns.map((campaign) => {
+                  const isUserCard = selectedCardIds.includes(campaign.card.id)
+
+                  return (
+                    <CampaignCard
+                      key={campaign.id}
+                      campaign={campaign}
+                      isUserCard={isUserCard}
+                    />
+                  )
+                })
+              ) : (
+                /* Empty State (Standardized) */
+                <div className="col-span-full py-32 text-center animate-fade-in relative overflow-hidden rounded-3xl bg-slate-50/50 border border-slate-100">
+                  <div className="absolute inset-0 bg-gradient-to-b from-rose-50/20 to-transparent pointer-events-none" />
+
+                  <div className="relative z-10">
+                    <div className="relative inline-block mb-10">
+                      <div className="absolute inset-0 bg-rose-500 rounded-full blur-3xl opacity-10 scale-150 animate-pulse"></div>
+                      <div className="w-24 h-24 bg-white rounded-2xl shadow-xl flex items-center justify-center border border-slate-100 mx-auto">
+                        <Search className="h-10 w-10 text-slate-200" strokeWidth={2} />
+                      </div>
                     </div>
 
-                    {/* Campaign Title */}
-                    <h4 className="mb-2 text-lg font-semibold text-gray-900">
-                      {campaign.title}
-                    </h4>
-
-                    {/* Reward Text */}
-                    <p className="mb-4 text-sm text-gray-600">
-                      {campaign.rewardText}
+                    <h3 className="text-2xl font-bold text-slate-900 mb-3 tracking-tight">Sonuç Bulunamadı</h3>
+                    <p className="text-slate-500 font-medium max-w-sm mx-auto leading-relaxed text-[14px] mb-10 px-6 opacity-80">
+                      Aradığın kriterlere uygun aktif bir kampanya bulamadık. Kelimeleri değiştirerek tekrar deneyebilirsin.
                     </p>
 
-                    {/* Reward Value */}
-                    <div className="mb-4 flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-indigo-600">
-                        {campaign.rewardValue}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {campaign.rewardType === 'points' && 'Puan'}
-                        {campaign.rewardType === 'cashback' && 'TL'}
-                        {campaign.rewardType === 'discount' && '₺ İndirim'}
-                      </span>
-                    </div>
-
-                    {/* Brands */}
-                    {campaign.brands.length > 0 && (
-                      <div className="mb-4 flex flex-wrap gap-1">
-                        {campaign.brands.map((b, idx) => (
-                          <span
-                            key={idx}
-                            className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600"
-                          >
-                            {b.brand.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* CTA Button */}
-                    <button className="w-full rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:from-indigo-700 hover:to-blue-700 hover:shadow-lg">
-                      Detayları Gör
+                    <button
+                      onClick={() => {
+                        setQuery('')
+                        setActiveCategory(null)
+                        setCampaigns([])
+                      }}
+                      className="inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-[0.15em] shadow-xl shadow-slate-200 hover:bg-black active:scale-95 transition-all"
+                    >
+                      <RefreshCw size={14} /> Filtreleri Sıfırla
                     </button>
                   </div>
-                )
-              })}
+                </div>
+              )}
             </div>
-          </div>
-        )}
-
-        {/* No Results */}
-        {!loading && query.length >= 2 && campaigns.length === 0 && (
-          <div className="mt-10 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-              <Search className="h-8 w-8 text-gray-400" />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-gray-900">
-              Kampanya bulunamadı
-            </h3>
-            <p className="mt-2 text-sm text-gray-600">
-              &quot;{query}&quot; için sonuç bulunamadı. Farklı bir arama deneyin.
-            </p>
-          </div>
+          </section>
         )}
       </div>
+
+      {/* Footer - KACF Style */}
+      <Footer />
 
       {/* Card Selector Modal */}
       <CardSelector

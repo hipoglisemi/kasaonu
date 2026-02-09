@@ -1,14 +1,89 @@
 @import "tailwindcss";
 
+/* ============================================
+   KACF DESIGN SYSTEM - COLOR PALETTE
+   ============================================ */
 :root {
+  /* Base Colors */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
+
+  /* Brand Colors (Standardized KasaÖnü) */
+  --brand-red: #FF385C;
+  --brand-rose: #FF385C;
+  --brand-slate: #0F172A;
+  --brand-blue: #0F172A;
+  --brand-orange: #F59E0B;
+  --brand-gradient: linear-gradient(to right, #FF385C, #E11D48);
+  --brand-gradient-soft: linear-gradient(135deg, #FF385C 0%, #f59e0b 100%);
+
+  /* Pastel Backgrounds */
+  --pastel-red: #FFF1F2;
+  --pastel-rose: #FFF1F2;
+  --pastel-slate: #F8FAFC;
+  --pastel-gray: #F8FAFC;
+
+  /* Badge Colors (Standardized) */
+  --badge-rose-bg: #FFF1F2;
+  --badge-rose-text: #FF385C;
+  --badge-rose-border: #FFE4E6;
+
+  --badge-slate-bg: #F1F5F9;
+  --badge-slate-text: #0F172A;
+  --badge-slate-border: #E2E8F0;
+
+  /* Mobile Safe Area */
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+
+  --header-height: 70px;
+  --header-height-md: 90px;
+
+  /* Dub.co Inspired Design Tokens */
+  --dub-border: #E2E8F0;
+  /* Slate 200 */
+  --dub-bg-subtle: #F8FAFC;
+  /* Slate 50 */
+  --dub-text-primary: #0F172A;
+  /* Slate 900 */
+  --dub-text-secondary: #64748B;
+  /* Slate 500 */
+  --dub-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --dub-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+}
+
+@media (min-width: 768px) {
+  :root {
+    --header-height: var(--header-height-md);
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+
+  /* Brand Colors */
+  --color-brand-red: var(--brand-red);
+  --color-brand-rose: var(--brand-rose);
+  --color-brand-slate: var(--brand-slate);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-orange: var(--brand-orange);
+
+  /* Pastel Colors */
+  --color-pastel-red: var(--pastel-red);
+  --color-pastel-rose: var(--pastel-rose);
+  --color-pastel-slate: var(--pastel-slate);
+  --color-pastel-gray: var(--pastel-gray);
+
+  /* Badge Colors */
+  --color-badge-rose-bg: var(--badge-rose-bg);
+  --color-badge-rose-text: var(--badge-rose-text);
+  --color-badge-slate-bg: var(--badge-slate-bg);
+  --color-badge-slate-text: var(--badge-slate-text);
+
+  /* Font Family */
+  --font-sans: var(--font-jakarta);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -19,8 +94,194 @@
   }
 }
 
+/* ============================================
+   GLOBAL STYLES
+   ============================================ */
+html {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 body {
-  background: var(--background);
+  background: var(--pastel-gray);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-jakarta), Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+
+  /* Font Smoothing */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   MOBILE SAFE AREA UTILITIES
+   ============================================ */
+.pb-safe {
+  padding-bottom: var(--safe-area-bottom);
+}
+
+.pt-safe {
+  padding-top: var(--safe-area-top);
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR (Chrome/Edge/Safari)
+   ============================================ */
+::-webkit-scrollbar {
+  width: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.5);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #94a3b8;
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out forwards;
+}
+
+@keyframes bounce-slow {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+@keyframes bounce-slower {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.animate-bounce-slower {
+  animation: bounce-slower 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+
+  14% {
+    transform: scale(1.1);
+  }
+
+  28% {
+    transform: scale(1);
+  }
+
+  42% {
+    transform: scale(1.1);
+  }
+
+  70% {
+    transform: scale(1);
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.rotate-x-12 {
+  transform: rotateX(12deg);
+}
+
+.rotate-y-12 {
+  transform: rotateY(12deg);
+}
+
+@keyframes floating-soft {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+.floating-soft {
+  animation: floating-soft 4s ease-in-out infinite;
 }
