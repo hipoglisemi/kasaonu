@@ -30,6 +30,7 @@ model Card {
   applicationUrl String?    @map("application_url")
   isActive       Boolean    @default(true) @map("is_active")
   logoUrl        String?    @map("logo_url")
+  creditLogoUrl  String?    @map("credit_logo_url")
   createdAt      DateTime   @default(now()) @map("created_at")
   campaigns      Campaign[]
   bank           Bank       @relation(fields: [bankId], references: [id], onDelete: Cascade)

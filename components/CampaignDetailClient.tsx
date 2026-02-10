@@ -31,14 +31,18 @@ interface CampaignDetailClientProps {
         imageUrl?: string | null;
         detailsText: string | null;
         conditionsText: string | null;
+        startDate: Date | null;
         endDate: Date | null;
         rewardValue: number | string | null | { toString(): string };
         rewardType: string | null;
+        rewardText?: string | null;
         trackingUrl?: string | null;
         sector?: { name: string } | null;
         card: {
             name: string;
             logoUrl?: string | null;
+            creditLogoUrl?: string | null;
+            applicationUrl?: string | null;
             bank: { name: string };
         };
     };
@@ -88,7 +92,7 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
         return `/logos/cards/${b}${c}.png`;
     };
 
-    const cardLogoPath = campaign.card.logoUrl || getCardLogoPath(campaign.card?.bank?.name, campaign.card?.name);
+    const cardLogoPath = campaign.card.creditLogoUrl || campaign.card.logoUrl || getCardLogoPath(campaign.card?.bank?.name, campaign.card?.name);
 
     if (!mounted) return null;
 
@@ -214,32 +218,55 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
                                 <div className="flex flex-col w-full">
                                     <span className="text-[16px] font-semibold text-slate-900 leading-tight">Kampanya Dönemi</span>
                                     <span className="text-[14px] text-slate-500 leading-relaxed mt-0.5">
-                                        {formatDate(campaign.endDate)}&apos;e kadar geçerli
+                                        {campaign.startDate ? new Date(campaign.startDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
+                                        {campaign.startDate && campaign.endDate ? ' - ' : ''}
+                                        {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' }) : ''}
+                                        {!campaign.startDate && !campaign.endDate && 'Süresiz'}
                                     </span>
                                 </div>
                             </div>
 
                             {/* Geçerli Kartlar */}
-                            <div className="flex items-start gap-4 py-4">
-                                <CreditCard size={24} className="text-slate-900 mt-0.5 shrink-0" strokeWidth={1.5} />
-                                <div className="flex flex-col w-full">
-                                    <span className="text-[16px] font-semibold text-slate-900 leading-tight">Geçerli Kartlar</span>
-                                    <span className="text-[14px] text-slate-500 leading-relaxed mt-0.5">
-                                        {campaign.card.bank.name} {campaign.card.name}
-                                    </span>
-                                </div>
-                            </div>
+                            {(() => {
+                                const cardsLine = campaign.conditionsText
+                                    ?.split('\n')
+                                    .find(l => l.startsWith('KARTLAR:'));
+                                const cardsText = cardsLine
+                                    ? cardsLine.replace('KARTLAR: ', '')
+                                    : `${campaign.card.bank.name} ${campaign.card.name}`;
+                                return (
+                                    <div className="flex items-start gap-4 py-4">
+                                        <CreditCard size={24} className="text-slate-900 mt-0.5 shrink-0" strokeWidth={1.5} />
+                                        <div className="flex flex-col w-full">
+                                            <span className="text-[16px] font-semibold text-slate-900 leading-tight">Geçerli Kartlar</span>
+                                            <span className="text-[14px] text-slate-500 leading-relaxed mt-0.5">
+                                                {cardsText}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Katılım Şekli */}
-                            <div className="flex items-start gap-4 py-4">
-                                <Smartphone size={24} className="text-slate-900 mt-0.5 shrink-0" strokeWidth={1.5} />
-                                <div className="flex flex-col w-full">
-                                    <span className="text-[16px] font-semibold text-slate-900 leading-tight">Katılım Şekli</span>
-                                    <span className="text-[14px] text-slate-500 leading-relaxed mt-0.5">
-                                        Mobil uygulama üzerinden veya banka kanallarından kampanya detaylarındaki talimatları izleyerek katılabilirsiniz.
-                                    </span>
-                                </div>
-                            </div>
+                            {(() => {
+                                const participationLine = campaign.conditionsText
+                                    ?.split('\n')
+                                    .find(l => l.startsWith('KATILIM:'));
+                                const participationText = participationLine
+                                    ? participationLine.replace('KATILIM: ', '')
+                                    : 'Mobil uygulama üzerinden veya banka kanallarından kampanya detaylarındaki talimatları izleyerek katılabilirsiniz.';
+                                return (
+                                    <div className="flex items-start gap-4 py-4">
+                                        <Smartphone size={24} className="text-slate-900 mt-0.5 shrink-0" strokeWidth={1.5} />
+                                        <div className="flex flex-col w-full">
+                                            <span className="text-[16px] font-semibold text-slate-900 leading-tight">Katılım Şekli</span>
+                                            <span className="text-[14px] text-slate-500 leading-relaxed mt-0.5">
+                                                {participationText}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Kampanya Koşulları */}
                             <div className="flex items-start gap-4 py-4">
@@ -249,7 +276,7 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
                                     {campaign.conditionsText ? (
                                         <>
                                             <ul className="mt-4 space-y-3">
-                                                {campaign.conditionsText.split('\n').slice(0, showAllConditions ? undefined : 5).map((item, idx) => (
+                                                {campaign.conditionsText.split('\n').filter(l => !l.startsWith('KATILIM:') && !l.startsWith('KARTLAR:')).slice(0, showAllConditions ? undefined : 5).map((item, idx) => (
                                                     item.trim() && (
                                                         <li key={idx} className="flex items-start gap-3 text-slate-800 leading-relaxed group">
                                                             <div className="mt-2 flex items-center justify-center shrink-0">
@@ -260,7 +287,7 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
                                                     )
                                                 ))}
                                             </ul>
-                                            {campaign.conditionsText.split('\n').filter(l => l.trim()).length > 5 && (
+                                            {campaign.conditionsText.split('\n').filter(l => l.trim() && !l.startsWith('KATILIM:') && !l.startsWith('KARTLAR:')).length > 5 && (
                                                 <button
                                                     onClick={() => setShowAllConditions(!showAllConditions)}
                                                     className="mt-4 flex items-center gap-2 text-[14px] font-medium text-rose-600 hover:text-rose-700 transition-colors"
@@ -332,9 +359,15 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
                                     </div>
                                 </div>
 
-                                <button className="w-full border-2 border-rose-600 text-rose-600 hover:bg-rose-50 py-3.5 rounded-xl font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2 bg-white mb-2">
-                                    Kart Başvurusu Yap <MousePointer2 size={18} className="rotate-[-10deg]" />
-                                </button>
+                                {campaign.card.applicationUrl ? (
+                                    <a href={campaign.card.applicationUrl} target="_blank" rel="noopener noreferrer" className="w-full border-2 border-rose-600 text-rose-600 hover:bg-rose-50 py-3.5 rounded-xl font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2 bg-white mb-2">
+                                        Kart Başvurusu Yap <MousePointer2 size={18} className="rotate-[-10deg]" />
+                                    </a>
+                                ) : (
+                                    <button className="w-full border-2 border-rose-600 text-rose-600 hover:bg-rose-50 py-3.5 rounded-xl font-bold text-[15px] transition-all active:scale-[0.98] flex items-center justify-center gap-2 bg-white mb-2">
+                                        Kart Başvurusu Yap <MousePointer2 size={18} className="rotate-[-10deg]" />
+                                    </button>
+                                )}
                             </div>
 
                             {/* 4. Footer: Analytics & Feedback */}

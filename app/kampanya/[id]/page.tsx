@@ -41,14 +41,37 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
         take: 4
     })
 
+    // 3. Serialize Decimal fields for Client Component
+    const serializedCampaign = {
+        ...campaign,
+        rewardValue: campaign.rewardValue ? Number(campaign.rewardValue) : null,
+        card: {
+            ...campaign.card,
+            annualFee: campaign.card.annualFee ? Number(campaign.card.annualFee) : null,
+            bank: campaign.card.bank
+        },
+        brands: campaign.brands
+    }
+
+    const serializedSimilarCampaigns = similarCampaigns.map(c => ({
+        ...c,
+        rewardValue: c.rewardValue ? Number(c.rewardValue) : null,
+        card: {
+            ...c.card,
+            annualFee: c.card.annualFee ? Number(c.card.annualFee) : null,
+            bank: c.card.bank
+        },
+        brands: [] // brands are not included in similarCampaigns query but to be safe
+    }))
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header />
 
             <main className="flex-grow pt-24 pb-32 md:pb-20 px-6 lg:px-20">
                 <CampaignDetailClient
-                    campaign={campaign}
-                    similarCampaigns={similarCampaigns}
+                    campaign={serializedCampaign}
+                    similarCampaigns={serializedSimilarCampaigns}
                 />
             </main>
 

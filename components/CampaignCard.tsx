@@ -138,7 +138,7 @@ export function CampaignCard({ campaign, isUserCard = false }: CampaignCardProps
                 {/* 1. Visual Strip (Primary Reward Badge) */}
                 <div className="w-full bg-rose-600/90 backdrop-blur-sm py-1.5 flex items-center justify-center border-y border-rose-500/20">
                     <span className="text-[11px] font-black text-rose-50 uppercase tracking-[0.25em]">
-                        {rewardText || "ÖZEL KAMPANYA"}
+                        {campaign.rewardText || rewardText || "ÖZEL KAMPANYA"}
                     </span>
                 </div>
 
