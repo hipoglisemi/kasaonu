@@ -115,6 +115,8 @@ export function CampaignCard({ campaign, isUserCard = false }: CampaignCardProps
                                 alt={campaign.title}
                                 fill
                                 className="object-cover transition-opacity duration-500 skew-x-12 scale-125"
+                                unoptimized
+                                referrerPolicy="no-referrer"
                             />
                         )}
                     </div>

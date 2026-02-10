@@ -141,6 +141,7 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
                             src={campaign.imageUrl}
                             alt={campaign.title}
                             className="w-full h-full object-cover opacity-95 group-hover:opacity-100 transition-opacity duration-500"
+                            referrerPolicy="no-referrer"
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-200">
@@ -161,6 +162,7 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
                                 src={sim.imageUrl}
                                 alt={sim.title}
                                 className="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                                referrerPolicy="no-referrer"
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-100">
