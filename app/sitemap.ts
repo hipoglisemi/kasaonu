@@ -6,7 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const campaigns = await prisma.campaign.findMany({
         where: { isActive: true },
-        select: { id: true, updatedAt: true },
+        select: { id: true, slug: true, updatedAt: true },
     })
 
     const sectors = await prisma.sector.findMany({
@@ -27,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.9,
         },
         ...campaigns.map((c) => ({
-            url: `${baseUrl}/kampanya/${c.id}`,
+            url: `${baseUrl}/kampanya/${c.slug}-${c.id}`,
             lastModified: c.updatedAt,
             changeFrequency: 'weekly' as const,
             priority: 0.8,

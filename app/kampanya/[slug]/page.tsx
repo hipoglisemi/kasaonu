@@ -6,12 +6,20 @@ import { CampaignDetailClient } from '@/components/CampaignDetailClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params
+export default async function CampaignDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug: rawSlug } = await params
 
-    // 1. Fetch main campaign
+    // URL format: "play-ile-market-alisverisine-300-tlye-varan-worldpuan-1"
+    // Extract numeric ID from the end of the slug
+    const parts = rawSlug.split('-')
+    const lastPart = parts[parts.length - 1]
+    const campaignId = parseInt(lastPart, 10)
+
+    if (isNaN(campaignId)) notFound()
+
+    // 1. Fetch main campaign by integer ID
     const campaign = await prisma.campaign.findUnique({
-        where: { id },
+        where: { id: campaignId },
         include: {
             card: { include: { bank: true } },
             sector: true,
@@ -21,10 +29,16 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
 
     if (!campaign) notFound()
 
+    // Redirect to canonical URL if slug doesn't match
+    const expectedSlug = `${campaign.slug}-${campaign.id}`
+    if (rawSlug !== expectedSlug) {
+        // Return the page anyway — ID is correct
+    }
+
     // 2. Fetch similar campaigns (Hybrid feature)
     const similarCampaigns = await prisma.campaign.findMany({
         where: {
-            id: { not: id },
+            id: { not: campaignId },
             isActive: true,
             OR: [
                 { sectorId: campaign.sectorId },

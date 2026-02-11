@@ -7,7 +7,8 @@ import { ChevronRight } from 'lucide-react';
 import { cn, formatDate, formatRewardValue } from '@/lib/utils';
 interface CampaignCardProps {
     campaign: {
-        id: string;
+        id: number;
+        slug: string;
         title: string;
         rewardText: string;
         rewardValue: any;
@@ -99,7 +100,7 @@ export function CampaignCard({ campaign, isUserCard = false }: CampaignCardProps
     return (
         <div className={cn("relative group", stripeStyles.card)}>
             {/* Clickable Wrapper */}
-            <Link href={`/kampanya/${campaign.id}`} className="block no-underline">
+            <Link href={`/kampanya/${campaign.slug}-${campaign.id}`} className="block no-underline">
 
                 {/* Visual Header (KasaÖnü Standard) */}
                 <div className="relative h-40 w-full bg-slate-50 overflow-hidden">

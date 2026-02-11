@@ -6,10 +6,11 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params
+        const { id: rawId } = await params
+        const id = parseInt(rawId, 10)
 
-        if (!id) {
-            return NextResponse.json({ success: false, error: 'Missing campaign ID' }, { status: 400 })
+        if (isNaN(id)) {
+            return NextResponse.json({ success: false, error: 'Invalid campaign ID' }, { status: 400 })
         }
 
         const campaign = await prisma.campaign.findUnique({

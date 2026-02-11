@@ -26,7 +26,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface CampaignDetailClientProps {
     campaign: {
-        id: string;
+        id: number;
+        slug: string;
         title: string;
         imageUrl?: string | null;
         detailsText: string | null;
@@ -47,7 +48,8 @@ interface CampaignDetailClientProps {
         };
     };
     similarCampaigns: Array<{
-        id: string;
+        id: number;
+        slug: string;
         title: string;
         imageUrl?: string | null;
     }>;
@@ -154,7 +156,7 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
                 {similarCampaigns.slice(0, 4).map((sim) => (
                     <Link
                         key={sim.id}
-                        href={`/kampanya/${sim.id}`}
+                        href={`/kampanya/${sim.slug}-${sim.id}`}
                         className="hidden lg:block relative bg-gray-50 overflow-hidden group border border-gray-100"
                     >
                         {sim.imageUrl ? (
@@ -398,7 +400,7 @@ export function CampaignDetailClient({ campaign, similarCampaigns }: CampaignDet
                                     {similarCampaigns.slice(0, 3).map((sim) => (
                                         <Link
                                             key={sim.id}
-                                            href={`/kampanya/${sim.id}`}
+                                            href={`/kampanya/${sim.slug}-${sim.id}`}
                                             className="flex items-center gap-4 group"
                                         >
                                             <div className="w-16 h-10 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden shrink-0">

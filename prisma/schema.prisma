@@ -69,7 +69,8 @@ model Brand {
 }
 
 model Campaign {
-  id               String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id               Int                    @id @default(autoincrement())
+  slug             String                 @unique
   cardId           Int                    @map("card_id")
   sectorId         Int?                   @map("sector_id")
   title            String
@@ -103,7 +104,7 @@ model Campaign {
 }
 
 model CampaignBrand {
-  campaignId String   @map("campaign_id") @db.Uuid
+  campaignId Int      @map("campaign_id")
   brandId    String   @map("brand_id") @db.Uuid
   brand      Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
   campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
@@ -131,7 +132,7 @@ model SearchLog {
   sessionId         String?      @map("session_id") @db.Uuid
   query             String
   resultCount       Int?         @map("result_count")
-  clickedCampaignId String?      @map("clicked_campaign_id") @db.Uuid
+  clickedCampaignId Int?         @map("clicked_campaign_id")
   searchedAt        DateTime     @default(now()) @map("searched_at")
   clickedCampaign   Campaign?    @relation(fields: [clickedCampaignId], references: [id])
   session           UserSession? @relation(fields: [sessionId], references: [id])

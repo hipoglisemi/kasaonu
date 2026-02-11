@@ -11,7 +11,8 @@ import { LoadingSkeleton } from '@/components/LoadingSkeleton'
 import { cn } from '@/lib/utils'
 
 interface Campaign {
-  id: string
+  id: number
+  slug: string
   title: string
   rewardText: string
   rewardValue: number

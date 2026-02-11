@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+list_campaigns.py
+run_play_scraper.py
+test_parser.py
